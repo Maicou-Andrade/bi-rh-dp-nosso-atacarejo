@@ -457,7 +457,7 @@ const Dash4 = () => {
 
 // ========== DASHBOARD 5: EMPRÉSTIMOS ==========
 const Dash5 = () => {
-  const totalAtivos=342, volumeTotal=4856230.00, saldoDevedor=2134500.00, descontoMensal=187650.00, colabComEmp=298, pctQuadro=(298/1847)*100;
+  const totalAtivos=342, volumeTotal=4856230.00, saldoDevedor=2134500.00, descontoMensal=187650.00, colabComEmp=298;
   const porBanco = [{label:"Banco do Brasil",value:1245000},{label:"Caixa Econômica",value:987000},{label:"Bradesco",value:756000},{label:"Itaú Unibanco",value:645000},{label:"Santander",value:432000},{label:"BMG",value:312000},{label:"PAN",value:198000},{label:"Agibank",value:145000},{label:"C6 Consignado",value:89230},{label:"Nu Financeira",value:47000}];
   const porTipo = [{label:"Consignado Privado",value:198,color:"var(--primary)"},{label:"Consignado Público",value:87,color:"var(--accent)"},{label:"Empréstimo Pessoal",value:42,color:"var(--primary-light)"},{label:"Outros",value:15,color:"var(--text-muted)"}];
   const evolDesc = [{label:"Jan",value:165000},{label:"Fev",value:172000},{label:"Mar",value:178000},{label:"Abr",value:187650},{label:"Mai",value:183000},{label:"Jun",value:175000},{label:"Jul",value:169000},{label:"Ago",value:174000},{label:"Set",value:180000},{label:"Out",value:185000},{label:"Nov",value:182000},{label:"Dez",value:178000}];
@@ -473,7 +473,7 @@ const Dash5 = () => {
       <KPICard icon="📉" label="Saldo Devedor Total" value={fmt(saldoDevedor)} color="var(--danger)"/>
       <KPICard icon="💳" label="Desconto Mensal na Folha" value={fmt(descontoMensal)} color="var(--warning)"/>
       <KPICard icon="👥" label="Colaboradores c/ Empréstimo" value={fmtN(colabComEmp)} color="var(--primary-light)"/>
-      <KPICard icon="📊" label="% do Quadro" value={fmtP(pctQuadro)} color="var(--text-muted)"/>
+      
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
       <ChartCard title="Volume por Banco Credor"><HBar data={porBanco} color="var(--primary)"/></ChartCard>
@@ -603,7 +603,6 @@ const Dash8 = () => {
 // ========== DASHBOARD 9: ATESTADOS ==========
 const Dash9 = () => {
   const totalAtestados=456, diasPerdidos=1823, mediaDias=4.0, colabDistintos=312, reincidencia=28, pendentes=15;
-  const absenteismo = ((1823)/(1847*22)*100);
   const topCids = [{label:"J06.9 Inf. vias aéreas",value:87},{label:"R51 Cefaleia",value:62},{label:"K29.7 Gastrite",value:45},{label:"M54.5 Dor lombar",value:42},{label:"R10.4 Dor abdominal",value:38},{label:"J11 Influenza",value:34},{label:"M79.1 Mialgia",value:28},{label:"F41.0 Ansiedade",value:22},{label:"K08.8 Dentários",value:18},{label:"S61.0 Ferimento dedo",value:14}];
   const porFilial = [{label:"Loja Centro",value:98},{label:"Loja Shopping",value:87},{label:"Loja Av. Brasil",value:78},{label:"Loja Mossoró",value:72},{label:"Loja Caicó",value:65},{label:"CD Logístico",value:56}];
   const porSexo = [{label:"Masculino",value:245,color:"var(--primary)"},{label:"Feminino",value:211,color:"var(--accent)"}];
@@ -622,10 +621,6 @@ const Dash9 = () => {
       <KPICard icon="👥" label="Colaboradores Distintos" value={fmtN(colabDistintos)} color="var(--accent)"/>
       <KPICard icon="🔁" label="Reincidência (3+)" value={fmtN(reincidencia)} sub="Colaboradores com 3+ atestados" color="var(--warning)"/>
       <KPICard icon="⏳" label="Pendentes de Validação" value={fmtN(pendentes)} color="var(--warning)"/>
-    </div>
-    <div style={{background:"var(--card)",borderRadius:8,padding:"12px 20px",marginBottom:16,borderLeft:"4px solid var(--accent)",boxShadow:"0 1px 3px rgba(0,0,0,0.08)",display:"flex",alignItems:"center",gap:16}}>
-      <div><span style={{fontSize:13,color:"var(--text-muted)"}}>Absenteísmo (%) = Dias Perdidos / Dias Úteis</span></div>
-      <div style={{fontSize:22,fontWeight:700,color:absenteismo>5?"var(--danger)":"var(--warning)"}}>{fmtP(absenteismo)}</div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
       <ChartCard title="Top 10 CIDs"><HBar data={topCids} color="var(--primary)"/></ChartCard>
