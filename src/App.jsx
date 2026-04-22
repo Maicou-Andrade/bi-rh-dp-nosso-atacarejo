@@ -16,6 +16,7 @@ const CARGOS = ["Operador de Caixa","Repositor","Açougueiro","Padeiro","Aux. Ho
 const NOMES = ["Maria Silva","João Santos","Ana Oliveira","Pedro Souza","Francisca Lima","José Costa","Antônia Pereira","Carlos Araújo","Raimunda Alves","Francisco Nascimento","Sandra Rocha","Luiz Ferreira","Mariana Gomes","Roberto Barbosa","Patrícia Ribeiro","Fernando Carvalho","Juliana Martins","Ricardo Monteiro","Cláudia Mendes","André Cavalcante"];
 const BANCOS = ["Banco do Brasil S.A.","Caixa Econômica Federal","Banco Bradesco S.A.","Itaú Unibanco S.A.","Banco Santander S.A.","Banco BMG S.A.","Banco PAN S.A.","Banco Agibank S.A.","Banco C6 Consignado S.A.","Nu Financeira S.A."];
 const CIDS = ["M54.5 - Dor lombar baixa","J06.9 - Inf. aguda vias aéreas sup.","K29.7 - Gastrite não especificada","R51 - Cefaleia","J11 - Influenza","M79.1 - Mialgia","S61.0 - Ferimento do dedo","R10.4 - Dor abdominal","K08.8 - Problemas dentários","F41.0 - Transtorno de ansiedade"];
+const MESES_12 = ["Mai/25","Jun/25","Jul/25","Ago/25","Set/25","Out/25","Nov/25","Dez/25","Jan/26","Fev/26","Mar/26","Abr/26"];
 
 const fmt = v => "R$ " + v.toFixed(2).replace(".",",").replace(/\B(?=(\d{3})+(?!\d))/g,".");
 const fmtP = v => v.toFixed(1).replace(".",",") + "%";
@@ -85,6 +86,53 @@ const StackedVBar = ({data, height = 160}) => {
           </div>
         );
       })}
+    </div>
+  );
+};
+
+// Gráfico de linha mensal (1 ou 2 séries) — para histórico 12 meses
+const Line12M = ({series, height = 180, yFmt}) => {
+  const W = 640, H = 150, PL = 40, PR = 12, PT = 10, PB = 28;
+  const allVals = series.flatMap(s => s.data);
+  const mx = Math.max(...allVals) * 1.08;
+  const mn = Math.min(Math.min(...allVals), 0);
+  const xStep = (W - PL - PR) / (MESES_12.length - 1);
+  const yScale = v => H - PB - ((v - mn)/(mx - mn || 1))*(H - PT - PB);
+  const fmtY = yFmt || fmtN;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => mn + (mx-mn)*t);
+  return (
+    <div style={{height, display:"flex", flexDirection:"column"}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:height-(series.length>1?22:6)}} preserveAspectRatio="none">
+        {ticks.map((t,i) => (
+          <g key={i}>
+            <line x1={PL} y1={yScale(t)} x2={W-PR} y2={yScale(t)} stroke="var(--border)" strokeWidth="0.5" strokeDasharray={i===0?"":"2 2"}/>
+            <text x={PL-4} y={yScale(t)+3} fontSize="8" fill="var(--text-muted)" textAnchor="end">{fmtY(t)}</text>
+          </g>
+        ))}
+        {series.map((s, si) => {
+          const path = s.data.map((v,i) => `${i===0?'M':'L'} ${PL+i*xStep} ${yScale(v)}`).join(' ');
+          return (
+            <g key={si}>
+              <path d={path} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round"/>
+              {s.data.map((v,i) => (
+                <circle key={i} cx={PL+i*xStep} cy={yScale(v)} r="2.5" fill={s.color} stroke="var(--card)" strokeWidth="1"/>
+              ))}
+            </g>
+          );
+        })}
+        {MESES_12.map((m,i) => (
+          <text key={i} x={PL+i*xStep} y={H-10} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{m}</text>
+        ))}
+      </svg>
+      {series.length > 1 && (
+        <div style={{display:"flex",gap:14,justifyContent:"center",marginTop:4}}>
+          {series.map((s,i) => (
+            <span key={i} style={{fontSize:11,color:"var(--text-muted)",display:"flex",alignItems:"center",gap:4}}>
+              <span style={{display:"inline-block",width:10,height:10,borderRadius:2,background:s.color}}/>{s.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -172,9 +220,7 @@ const Dash1 = () => {
   const topSetores = [{label:"Frente de Caixa",value:334},{label:"Operações",value:298},{label:"Açougue",value:154},{label:"Padaria",value:132},{label:"Estoque",value:124},{label:"Hortifruti",value:112},{label:"Prevenção Perdas",value:86},{label:"Logística",value:82},{label:"Administrativo",value:74},{label:"Manutenção",value:62}];
   const evolucao = [{label:"Jan",v1:28,v2:16},{label:"Fev",v1:24,v2:18},{label:"Mar",v1:39,v2:13},{label:"Abr",v1:34,v2:19},{label:"Mai",v1:36,v2:17},{label:"Jun",v1:30,v2:21},{label:"Jul",v1:25,v2:15},{label:"Ago",v1:32,v2:18},{label:"Set",v1:37,v2:20},{label:"Out",v1:29,v2:14},{label:"Nov",v1:31,v2:22},{label:"Dez",v1:26,v2:12}];
   const porSituacao = [{label:"Ativo",value:1600,color:"var(--success)"},{label:"Demitido",value:274,color:"var(--danger)"},{label:"Afastado",value:38,color:"var(--warning)"}];
-  const rows = NOMES.slice(0,12).map((n,i)=>[
-    String(1000+i),n,FILIAIS[i%6],SETORES[i%15],CARGOS[i%15],i<10?"Ativo":i===10?"Afastado":"Demitido",i%2===0?"Masculino":"Feminino",String(22+i*3),fmt(1400+Math.random()*2000),`0${(i%12)+1}/0${(i%28)+1}/202${i%4}`,i>=10?`0${(i%12)+1}/15/2026`:"-"
-  ]);
+  const histSalMedio = [1912.30,1924.85,1938.20,1945.60,1952.10,1958.80,1964.40,1971.20,1976.90,1979.50,1982.70,1986.45];
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
       <KPICard icon="👥" label="Total Colaboradores Ativos" value={fmtN(ativos)} color="var(--primary)"/>
@@ -194,8 +240,8 @@ const Dash1 = () => {
       <ChartCard title="Admissões vs Desligamentos (mês a mês)"><StackedVBar data={evolucao} height={130}/><div style={{display:"flex",gap:12,justifyContent:"center",marginTop:8}}><span style={{fontSize:11,color:"var(--success)"}}>■ Admissões</span><span style={{fontSize:11,color:"var(--danger)"}}>■ Desligamentos</span></div></ChartCard>
       <ChartCard title="Distribuição por Situação"><Donut data={porSituacao} size={120}/></ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Colaboradores">
-      <DataTable columns={["Chapa","Nome","Filial","Setor","Cargo","Situação","Sexo","Idade","Salário","Dt. Admissão","Dt. Demissão"]} rows={rows}/>
+    <ChartCard title="Histórico dos Últimos 12 Meses — Salário Médio">
+      <Line12M series={[{label:"Salário Médio",color:"var(--accent)",data:histSalMedio}]} yFmt={fmt}/>
     </ChartCard>
   </>);
 };
@@ -207,9 +253,8 @@ const Dash2 = () => {
   const porStatus = [{label:"M - Marcadas",value:108,color:"var(--primary)"},{label:"P - Pagas",value:76,color:"var(--success)"},{label:"F - Finalizadas",value:398,color:"var(--text-muted)"},{label:"D - Ag. Aprov. DP",value:12,color:"var(--warning)"},{label:"G - Ag. Aprov. Gestor",value:6,color:"var(--accent)"}];
   const topSetoresCusto = [{label:"Frente de Caixa",value:45600},{label:"Operações",value:41800},{label:"Açougue",value:27400},{label:"Padaria",value:25100},{label:"Estoque",value:22200},{label:"Hortifruti",value:19400},{label:"Administrativo",value:17200},{label:"Logística",value:16000},{label:"Manutenção",value:13200},{label:"TI",value:11100}];
   const provDesc = FILIAIS.map(f=>({label:f.split(" - ")[0],v1:24000+Math.random()*35000|0,v2:7000+Math.random()*12000|0}));
-  const rows = NOMES.slice(0,10).map((n,i)=>[
-    String(1000+i),n,FILIAIS[i%6],SETORES[i%10],`01/0${i+1}/2024`,`01/0${i+1}/2025`,String(30-i*2),String(20+i),String(i<3?0:10-i),fmt(2800+Math.random()*3000),["M - Marcadas","P - Pagas","F - Finalizadas","D - Ag. Aprov. DP"][i%4]
-  ]);
+  const histProgramadas = [92,88,96,101,94,105,112,98,104,108,115,108];
+  const histCustoFerias = [218400,224800,232100,241500,228900,246200,254800,238400,249600,252300,246700,248320];
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
       <KPICard icon="🏖️" label="Férias Programadas" value={fmtN(programadas)} color="var(--primary)"/>
@@ -245,9 +290,14 @@ const Dash2 = () => {
         </div>
       </ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Férias">
-      <DataTable columns={["Chapa","Nome","Filial","Setor","Per. Aquisitivo","Limite","Saldo","Dias Gozo","Abono","Líquido","Status"]} rows={rows}/>
-    </ChartCard>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+      <ChartCard title="Histórico 12 Meses — Férias Programadas">
+        <Line12M series={[{label:"Férias Programadas",color:"var(--primary)",data:histProgramadas}]}/>
+      </ChartCard>
+      <ChartCard title="Histórico 12 Meses — Custo Total Férias">
+        <Line12M series={[{label:"Custo Total",color:"var(--accent)",data:histCustoFerias}]} yFmt={fmt}/>
+      </ChartCard>
+    </div>
   </>);
 };
 
@@ -268,9 +318,6 @@ const Dash3 = () => {
       <ChartCard title="Distribuição por Tipo"><Donut data={[{label:"Sem dados",value:1,color:"var(--border)"}]} size={110}/></ChartCard>
       <ChartCard title="Evolução Mensal"><VBar data={Array(12).fill(0).map((_,i)=>({label:["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][i],value:1}))} color="var(--border)" height={130}/></ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Controle de Horas">
-      <div style={{textAlign:"center",padding:40,color:"var(--text-muted)",fontSize:14}}>📋 Dados indisponíveis — consulta em implantação</div>
-    </ChartCard>
   </>);
 };
 
@@ -282,9 +329,9 @@ const Dash4 = () => {
   const porNivel = [{label:"1 - Ativo",value:1082000,color:"var(--primary)"},{label:"2 - Passivo Circulante",value:1876000,color:"var(--accent)"},{label:"4 - Contas Resultado",value:1229230,color:"var(--primary-light)"}];
   const topCCusto = [{label:"CC Operações Pau dos Ferros",value:298000},{label:"CC FDC São Miguel",value:258000},{label:"CC Operações Limoeiro",value:232000},{label:"CC Açougue Pau dos Ferros",value:204000},{label:"CC FDC Quixadá",value:189000},{label:"CC Padaria Pau dos Ferros",value:168000},{label:"CC Estoque Assú",value:154000},{label:"CC Operações Morada Nova",value:142000},{label:"CC Adm Geral",value:132000},{label:"CC FDC Assú",value:122000}];
   const topContas = [{label:"Salários a Pagar",value:2476000},{label:"INSS a Recolher",value:502000},{label:"FGTS a Recolher",value:334000},{label:"IRRF a Recolher",value:213000},{label:"Vale Transporte",value:172000},{label:"Vale Alimentação",value:152000},{label:"Provisão 13º",value:123000},{label:"Provisão Férias",value:111000},{label:"Pensão Alimentícia",value:75000},{label:"Sindicato",value:29230}];
-  const rows = NOMES.slice(0,10).map((n,i)=>[
-    `L${100+i%8}`,FILIAIS[i%6],String(1000+i),n,SETORES[i%10],`CC ${SETORES[i%10]}`,`${i+1}.01.001`,`Conta ${i+1}`,fmt(2000+Math.random()*3000),fmt(1800+Math.random()*2500)
-  ]);
+  const histCustoMedio = [2542.10,2558.40,2567.80,2578.30,2586.90,2592.40,2598.70,2604.80,2609.30,2612.80,2614.50,2617.02];
+  const histDebito  = [3942000,3978000,4012000,4045000,4078000,4101000,4122000,4138000,4152000,4168000,4178000,4187230];
+  const histCredito = [3938000,3972000,4005000,4038000,4072000,4095000,4116000,4132000,4148000,4162000,4175000,4187230];
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
       <KPICard icon="💰" label="Total Folha (Débito)" value={fmt(totalDebito)} color="var(--danger)"/>
@@ -302,9 +349,14 @@ const Dash4 = () => {
       <ChartCard title="Top 10 Centros de Custo"><HBar data={topCCusto} color="var(--accent)"/></ChartCard>
       <ChartCard title="Top 10 Contas Contábeis"><HBar data={topContas} color="var(--primary-dark)"/></ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Folha de Pagamento">
-      <DataTable columns={["Lote","Filial","Chapa","Nome","Setor","Centro Custo","Conta","Descrição","Débito","Crédito"]} rows={rows}/>
-    </ChartCard>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+      <ChartCard title="Histórico 12 Meses — Custo Médio / Colaborador">
+        <Line12M series={[{label:"Custo Médio",color:"var(--primary)",data:histCustoMedio}]} yFmt={fmt}/>
+      </ChartCard>
+      <ChartCard title="Histórico 12 Meses — Total Folha (Débito e Crédito)">
+        <Line12M series={[{label:"Débito",color:"var(--danger)",data:histDebito},{label:"Crédito",color:"var(--success)",data:histCredito}]} yFmt={fmt}/>
+      </ChartCard>
+    </div>
   </>);
 };
 
@@ -316,9 +368,7 @@ const Dash5 = () => {
   const evolDesc = [{label:"Jan",value:143000},{label:"Fev",value:149000},{label:"Mar",value:154000},{label:"Abr",value:162840},{label:"Mai",value:158000},{label:"Jun",value:152000},{label:"Jul",value:146000},{label:"Ago",value:151000},{label:"Set",value:156000},{label:"Out",value:160000},{label:"Nov",value:157000},{label:"Dez",value:154000}];
   const topFilSaldo = [{label:"Pau dos Ferros - RN",value:454000},{label:"São Miguel - RN",value:386000},{label:"Limoeiro do Norte - CE",value:336000},{label:"Quixadá - CE",value:297000},{label:"Assú - RN",value:230000},{label:"Morada Nova - CE",value:149300}];
   const porTempo = [{label:"<1 ano",value:36,color:"var(--accent)"},{label:"1-3 anos",value:76,color:"var(--accent-light)"},{label:"3-5 anos",value:66,color:"var(--primary-light)"},{label:"5-10 anos",value:50,color:"var(--primary)"},{label:"10+",value:30,color:"var(--primary-dark)"}];
-  const rows = NOMES.slice(0,10).map((n,i)=>[
-    String(1000+i),n,FILIAIS[i%6],SETORES[i%10],BANCOS[i%10],"Consignado",fmt(8000+Math.random()*20000),fmt(400+Math.random()*800),`${6+i}/${12+i*2}`,fmt(2000+Math.random()*10000),`01/0${(i%12)+1}/2024`,`01/0${(i%12)+1}/2026`
-  ]);
+  const histEmpAtivos = [268,272,278,281,285,287,290,293,295,293,294,296];
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
       <KPICard icon="🏦" label="Empréstimos Ativos" value={fmtN(totalAtivos)} color="var(--primary)"/>
@@ -336,8 +386,8 @@ const Dash5 = () => {
       <ChartCard title="Top Filiais por Saldo Devedor"><HBar data={topFilSaldo} color="var(--danger)"/></ChartCard>
       <ChartCard title="Por Faixa Tempo de Empresa"><Donut data={porTempo} size={110}/></ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Empréstimos">
-      <DataTable columns={["Chapa","Nome","Filial","Setor","Banco","Tipo","Vl. Empréstimo","Parcela","Pagas/Total","Saldo Devedor","Início","Final"]} rows={rows}/>
+    <ChartCard title="Histórico 12 Meses — Empréstimos Ativos">
+      <Line12M series={[{label:"Empréstimos Ativos",color:"var(--primary)",data:histEmpAtivos}]}/>
     </ChartCard>
   </>);
 };
@@ -351,9 +401,8 @@ const Dash6 = () => {
   const topTipos = [{label:"Inic.Empregador sem justa causa",value:8},{label:"Inic.Empregado sem justa causa",value:4},{label:"Comum acordo",value:3},{label:"Término contrato",value:2},{label:"Inic.Empregador com justa causa",value:1},{label:"Outros",value:1}];
   const provDescFilial = FILIAIS.map(f=>({label:f.split(" - ")[0],v1:18000+Math.random()*42000|0,v2:4000+Math.random()*12000|0}));
   const porFaixaDemitidos = [{label:"<18",value:1},{label:"18-24",value:7},{label:"25-34",value:5},{label:"35-44",value:3},{label:"45-54",value:2},{label:"55+",value:1}];
-  const rows = NOMES.slice(0,10).map((n,i)=>[
-    String(1000+i),n,FILIAIS[i%6],SETORES[i%10],CARGOS[i%10],["Inic.Empregador sem justa causa","Comum acordo","Inic.Empregado sem justa causa"][i%3],i%3===2?"VOLUNTARIA":"INVOLUNTARIA",`${(i%5)+1}a`,fmt(1400+Math.random()*2000),fmt(3000+Math.random()*8000),fmt(800+Math.random()*2000),fmt(2000+Math.random()*7000),`0${(i%12)+1}/15/2026`
-  ]);
+  const histTotalResc = [16,18,13,19,17,21,15,18,20,14,22,19];
+  const histCustoMedioResc = [11420.50,11830.20,12150.80,12340.40,12510.90,12680.30,12820.60,12940.20,13010.50,13045.80,13090.30,13114.75];
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
       <KPICard icon="🚪" label="Total Rescisões (mês)" value={fmtN(totalMes)} color="var(--danger)"/>
@@ -373,9 +422,14 @@ const Dash6 = () => {
       <ChartCard title="Proventos vs Descontos por Filial"><StackedVBar data={provDescFilial} height={130}/><div style={{display:"flex",gap:12,justifyContent:"center",marginTop:8}}><span style={{fontSize:11,color:"var(--success)"}}>■ Proventos</span><span style={{fontSize:11,color:"var(--danger)"}}>■ Descontos</span></div></ChartCard>
       <ChartCard title="Faixa Etária dos Desligados"><VBar data={porFaixaDemitidos} color="var(--primary-light)" height={130}/></ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Rescisões">
-      <DataTable columns={["Chapa","Nome","Filial","Setor","Cargo","Tipo Demissão","Categoria","Tempo Casa","Salário","Proventos","Descontos","Líquido","Dt. Demissão"]} rows={rows}/>
-    </ChartCard>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+      <ChartCard title="Histórico 12 Meses — Total de Rescisões">
+        <Line12M series={[{label:"Rescisões",color:"var(--danger)",data:histTotalResc}]}/>
+      </ChartCard>
+      <ChartCard title="Histórico 12 Meses — Custo Médio / Rescisão">
+        <Line12M series={[{label:"Custo Médio",color:"var(--primary)",data:histCustoMedioResc}]} yFmt={fmt}/>
+      </ChartCard>
+    </div>
   </>);
 };
 
@@ -388,8 +442,9 @@ const Dash7 = () => {
   const topSetoresTempo = [{label:"TI",value:6.8},{label:"Administrativo",value:6.2},{label:"Financeiro",value:5.9},{label:"Manutenção",value:5.4},{label:"Logística",value:4.8},{label:"Compras",value:4.6},{label:"RH",value:4.3},{label:"Estoque",value:3.7},{label:"Açougue",value:3.4},{label:"Frente de Caixa",value:2.6}];
   const porSexo = [{label:"Masculino",value:952,color:"var(--primary)"},{label:"Feminino",value:648,color:"var(--accent)"}];
   const porFaixaEtaria = [{label:"<18",value:38},{label:"18-24",value:356},{label:"25-34",value:542},{label:"35-44",value:378},{label:"45-54",value:198},{label:"55+",value:88}];
+  const histTempoMedio = [3.4,3.5,3.5,3.6,3.6,3.6,3.7,3.7,3.7,3.8,3.8,3.8];
   const rows = NOMES.slice(0,12).map((n,i)=>[
-    String(1000+i),n,"***.***.***-"+String(10+i),FILIAIS[i%6],SETORES[i%10],CARGOS[i%10],i<10?"Ativo":"Demitido",`0${(i%12)+1}/15/20${14+i%10}`,String((i*2+1).toFixed(1)),["<1 ano","1-3 anos","3-5 anos","5-10 anos","10+"][i%5],String(22+i*3),["18-24","25-34","35-44","45-54","55+"][i%5]
+    String(1000+i),n,"•••.•••.•••-••",FILIAIS[i%6],SETORES[i%10],CARGOS[i%10],i<10?"Ativo":"Demitido",`0${(i%12)+1}/15/20${14+i%10}`,String((i*2+1).toFixed(1)),["<1 ano","1-3 anos","3-5 anos","5-10 anos","10+"][i%5],String(22+i*3),["18-24","25-34","35-44","45-54","55+"][i%5]
   ]);
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
@@ -409,6 +464,9 @@ const Dash7 = () => {
       <ChartCard title="Distribuição por Sexo"><Donut data={porSexo} size={110}/></ChartCard>
       <ChartCard title="Distribuição por Faixa Etária"><VBar data={porFaixaEtaria} color="var(--primary-light)" height={130}/></ChartCard>
     </div>
+    <ChartCard title="Histórico 12 Meses — Tempo Médio de Empresa" style={{marginBottom:16}}>
+      <Line12M series={[{label:"Tempo Médio (anos)",color:"var(--primary)",data:histTempoMedio}]} yFmt={v=>v.toFixed(1).replace(".",",")+"a"}/>
+    </ChartCard>
     <ChartCard title="Tabela Analítica — Tempo de Empresa">
       <DataTable columns={["Chapa","Nome","CPF","Filial","Setor","Cargo","Situação","Admissão","Tempo (anos)","Faixa Tempo","Idade","Faixa Etária"]} rows={rows}/>
     </ChartCard>
@@ -424,9 +482,8 @@ const Dash8 = () => {
   const porTipo = [{label:"Atestado Médico",value:16,color:"var(--primary)"},{label:"Licença Maternidade",value:7,color:"var(--accent)"},{label:"Laudo Médico",value:6,color:"var(--primary-light)"},{label:"Doença Ocupacional",value:4,color:"var(--warning)"},{label:"Outros",value:5,color:"var(--text-muted)"}];
   const topSetores = [{label:"Operações",value:7},{label:"Estoque",value:5},{label:"Açougue",value:5},{label:"Frente de Caixa",value:4},{label:"Logística",value:4},{label:"Manutenção",value:3},{label:"Padaria",value:3},{label:"Hortifruti",value:3},{label:"Administrativo",value:2},{label:"Prevenção Perdas",value:2}];
   const porFaixa = [{label:"<18",value:0},{label:"18-24",value:4},{label:"25-34",value:11},{label:"35-44",value:12},{label:"45-54",value:7},{label:"55+",value:4}];
-  const rows = NOMES.slice(0,10).map((n,i)=>[
-    String(1000+i),n,FILIAIS[i%6],SETORES[i%10],CIDS[i%10].split(" - ")[0],CIDS[i%10].split(" - ")[1],"Atestado Médico",`0${(i%12)+1}/01/2026`,`0${(i%12)+1}/${15+i}/2026`,String(16+i*5),["APROVADO","PENDENTE VALIDACAO","APROVADO"][i%3],["VALIDADO","PENDENTE VALIDACAO","VALIDADO"][i%3],`Dr. ${["Silva","Santos","Oliveira","Costa","Lima"][i%5]}`
-  ]);
+  const histTotalAfast = [32,30,35,38,34,41,39,36,42,40,37,38];
+  const histMediaDias  = [38.2,39.5,40.8,41.3,40.1,42.6,43.2,41.8,43.5,42.9,42.1,42.4];
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
       <KPICard icon="🏥" label="Total Afastados" value={fmtN(totalAfastados)} color="var(--danger)"/>
@@ -446,9 +503,14 @@ const Dash8 = () => {
       <ChartCard title="Top 10 Setores"><HBar data={topSetores} color="var(--primary-light)"/></ChartCard>
       <ChartCard title="Faixa Etária"><VBar data={porFaixa} color="var(--accent)" height={130}/></ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Afastamentos">
-      <DataTable columns={["Chapa","Nome","Filial","Setor","CID","Descrição CID","Tipo","Início","Fim","Dias","Status","Validação","Médico"]} rows={rows}/>
-    </ChartCard>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+      <ChartCard title="Histórico 12 Meses — Total de Afastados">
+        <Line12M series={[{label:"Afastados",color:"var(--danger)",data:histTotalAfast}]}/>
+      </ChartCard>
+      <ChartCard title="Histórico 12 Meses — Média de Dias">
+        <Line12M series={[{label:"Média (dias)",color:"var(--primary)",data:histMediaDias}]} yFmt={v=>v.toFixed(1).replace(".",",")}/>
+      </ChartCard>
+    </div>
   </>);
 };
 
@@ -462,9 +524,8 @@ const Dash9 = () => {
   const topSetores = [{label:"Frente de Caixa",value:78},{label:"Operações",value:66},{label:"Estoque",value:45},{label:"Açougue",value:39},{label:"Padaria",value:33},{label:"Hortifruti",value:30},{label:"Logística",value:24},{label:"Manutenção",value:22},{label:"Prevenção Perdas",value:19},{label:"Administrativo",value:16}];
   const porStatusVal = [{label:"Aprovado",value:346,color:"var(--success)"},{label:"Pendente Validação",value:13,color:"var(--warning)"},{label:"Reprovado",value:37,color:"var(--danger)"}];
   const porFaixa = [{label:"<18",value:10},{label:"18-24",value:85},{label:"25-34",value:136},{label:"35-44",value:97},{label:"45-54",value:47},{label:"55+",value:21}];
-  const rows = NOMES.slice(0,12).map((n,i)=>[
-    String(1000+i),n,FILIAIS[i%6],SETORES[i%10],CIDS[i%10].split(" - ")[0],CIDS[i%10].split(" - ")[1],["Atestado Médico","Consulta Médica","Declaração de Ausência"][i%3],`0${(i%12)+1}/0${(i%28)+1}/2026`,`0${(i%12)+1}/0${Math.min((i%28)+3,28)}/2026`,String(1+i%5),["APROVADO","PENDENTE VALIDACAO","APROVADO","APROVADO"][i%4],["VALIDADO","PENDENTE VALIDACAO","VALIDADO","VALIDADO"][i%4]
-  ]);
+  const histTotalAtest = [312,328,345,358,341,372,384,365,389,381,372,396];
+  const histMediaDiasAtest = [3.6,3.7,3.8,3.8,3.7,3.9,4.0,3.9,4.0,4.0,3.9,4.0];
   return (<>
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
       <KPICard icon="📋" label="Total de Atestados" value={fmtN(totalAtestados)} color="var(--primary)"/>
@@ -485,9 +546,14 @@ const Dash9 = () => {
       <ChartCard title="Status de Validação"><Donut data={porStatusVal} size={100}/></ChartCard>
       <ChartCard title="Faixa Etária"><VBar data={porFaixa} color="var(--accent)" height={120}/></ChartCard>
     </div>
-    <ChartCard title="Tabela Analítica — Atestados">
-      <DataTable columns={["Chapa","Nome","Filial","Setor","CID","Descrição CID","Tipo Atestado","Início","Fim","Dias","Status","Validação"]} rows={rows}/>
-    </ChartCard>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+      <ChartCard title="Histórico 12 Meses — Total de Atestados">
+        <Line12M series={[{label:"Atestados",color:"var(--primary)",data:histTotalAtest}]}/>
+      </ChartCard>
+      <ChartCard title="Histórico 12 Meses — Média de Dias por Atestado">
+        <Line12M series={[{label:"Média (dias)",color:"var(--accent)",data:histMediaDiasAtest}]} yFmt={v=>v.toFixed(1).replace(".",",")}/>
+      </ChartCard>
+    </div>
   </>);
 };
 
@@ -562,7 +628,7 @@ export default function App() {
             {activeDash?.icon} {activeDash?.label}
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            {["Coligada ▾","Filial ▾","Período ▾"].map((f,i)=>(
+            {["Coligada ▾","Filial ▾","Setor ▾","Período ▾"].map((f,i)=>(
               <div key={i} style={{background:"#fff",borderRadius:6,padding:"4px 12px",fontSize:12,color:"var(--text)",cursor:"pointer",border:"1px solid var(--border)",whiteSpace:"nowrap"}}>{f}</div>
             ))}
             <button onClick={()=>setShowScript(true)} style={{
